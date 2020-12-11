@@ -1,13 +1,41 @@
 require("dotenv").config();
+const events = require("events");
 const Discord = require("discord.js");
 const client = new Discord.Client();
 const fs = require("fs");
 const prefix = ">";
 const format = require("date-fns/format");
+const utilities = require("./utilities");
+
+const commandHandler = new events.EventEmitter();
+
+fs.readdir("./commands", (err, files) => {
+	files.forEach((file) => {
+		var command = require(`./commands/${file}`);
+		commandHandler.on(command.keyword, (client, guildData, message, args) => {
+			if (command.modOnly && !utilities.IsMod(message.author.id, guildData)) {
+				message.delete();
+				return utilities.TmpReply(message, "This command requires moderator permissions", 10);
+			}
+			if (args.length < command.minArgs) {
+				message.delete();
+				return utilities.TmpReply(
+					message,
+					`This command requires at least ${command.minArgs} argument(s), provided ${args.length}`,
+					10
+				);
+			}
+
+			command.action(client, guildData, message, args);
+		});
+	});
+});
 
 client.on("ready", () => {
 	console.log(`Logged in as ${client.user.tag}!`);
-	console.log(`Serving ${client.users.cache.size} users, in ${client.channels.cache.size} channels of ${client.guilds.cache.size} guilds.`);
+	console.log(
+		`Serving ${client.users.cache.size} users, in ${client.channels.cache.size} channels of ${client.guilds.cache.size} guilds.`
+	);
 	client.user.setActivity({
 		name: "Use >help",
 		status: "online",
@@ -16,21 +44,14 @@ client.on("ready", () => {
 
 client.on("guildCreate", (guild) => {
 	// This event triggers when the bot joins a guild.
-	console.log(`New guild joined: ${guild.name} (id: ${guild.id}). This guild has ${guild.memberCount} members!`);
+	console.log(
+		`New guild joined: ${guild.name} (id: ${guild.id}). This guild has ${guild.memberCount} members!`
+	);
 });
 
 client.on("guildDelete", (guild) => {
 	// this event triggers when the bot is removed from a guild.
 	console.log(`I have been removed from: ${guild.name} (id: ${guild.id})`);
-});
-
-fs.readdir("./commands/", (err, files) => {
-	if (err) return console.error(err);
-	files.forEach((file) => {
-		let eFunction = require(`./commands/${file}`);
-		let eName = file.split(".")[0];
-		client.on(eName, (...args) => eFunction.run(client, ...args));
-	});
 });
 
 client.on("message", async (message) => {
@@ -47,13 +68,13 @@ client.on("message", async (message) => {
 	if (guildData == undefined) {
 		guildData = { guild: message.guild.id, mods: [] };
 		data.guilds.push(guildData);
-		WriteToJson(data);
+		utilities.WriteToJson(data);
 	}
 	var guildIndex = data.guilds.indexOf(guildData);
 
-	if (!IsMod(message.guild.ownerID, guildData)) {
+	if (!utilities.IsMod(message.guild.ownerID, guildData)) {
 		data.guilds[guildIndex].mods.push(message.guild.ownerID);
-		WriteToJson(data);
+		utilities.WriteToJson(data);
 	}
 
 	var now = new Date();
@@ -61,7 +82,13 @@ client.on("message", async (message) => {
 	const args = message.content.slice(1).trim().split(/ +/g);
 	const command = args.shift().toLowerCase();
 
-	console.log(`${format(now, "dd/MM/yyyy hh:mm:ss a")} - ${message.author.username} used the ${command} command ${args.length != 0 ? `with the arguments ${args}` : ""}`);
+	console.log(
+		`${format(now, "dd/MM/yyyy hh:mm:ss a")} - ${
+			message.author.username
+		} used the ${command} command ${args.length != 0 ? `with the arguments ${args}` : ""}`
+	);
+
+	commandHandler.emit(command, client, guildData, message, args);
 
 	if (command === "help") {
 		message.delete();
@@ -81,26 +108,6 @@ client.on("message", async (message) => {
 		\`>blame\`
 			This command blames a random user in the guild
 		`);
-	}
-
-	if (command === "ping") {
-		// Calculates ping between sending a message and editing it, giving a nice round-trip latency.
-		// The second ping is an average latency between the bot and the websocket server (one-way, not round-trip)
-		const m = await message.channel.send("Ping?");
-		m.edit(`Pong! Latency is ${m.createdTimestamp - message.createdTimestamp}ms. API Latency is ${Math.round(client.ws.ping)}ms`);
-	}
-
-	if (command === "purge") {
-		if (IsMod(message.author.id, guildData)) {
-			const deleteCount = parseInt(args[0], 10);
-			message.delete();
-			if (!deleteCount || deleteCount < 2 || deleteCount > 100) {
-				return TmpReply(message, `You must provide the number of messages to delete (2 - 100)`);
-			}
-
-			const fetched = await message.channel.messages.fetch({ limit: deleteCount });
-			message.channel.bulkDelete(fetched).catch((error) => TmpReply(message, `Couldn't delete messages because of: ${error}`, 10000));
-		}
 	}
 
 	if (command === "addmod") {
@@ -152,24 +159,5 @@ client.on("message", async (message) => {
 		message.channel.send(`It's <@${entry.user.id}>'s fault!`);
 	}
 });
-
-async function WriteToJson(data) {
-	const jsonToWrite = JSON.stringify(data);
-	fs.writeFile("./store.json", jsonToWrite, "utf8", (err) => {});
-}
-
-function IsMod(id, guildData) {
-	if (guildData.mods.includes(id)) return true;
-	return false;
-}
-
-async function TmpReply(origMsg, newMsg, timeout = 4000) {
-	return origMsg
-		.reply(newMsg)
-		.then((msg) => {
-			msg.delete({ timeout: timeout });
-		})
-		.catch(console.error);
-}
 
 client.login(process.env.BOT_TOKEN);
