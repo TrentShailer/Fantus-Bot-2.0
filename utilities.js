@@ -34,5 +34,5 @@ function FetchGuildData(message) {
 	var json = fs.readFileSync(`./guilds/${message.guild.id}.json`, "utf8");
 	return JSON.parse(json);
 }
-
-module.exports = { WriteToJson, IsMod, TmpReply, FetchGuildData };
+var helpMsg = `**Command list**`;
+module.exports = { WriteToJson, IsMod, TmpReply, FetchGuildData, helpMsg };

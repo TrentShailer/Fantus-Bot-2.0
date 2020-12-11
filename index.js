@@ -32,6 +32,9 @@ fs.readdir("./commands", (err, files) => {
 
 			command.action(client, guildData, message, args);
 		});
+		utilities.helpMsg += `\n\`${command.template}\`\n	${command.description}${
+			command.modOnly ? `\n	This command requires moderator permissions` : ""
+		}	`;
 	});
 });
 
@@ -81,26 +84,6 @@ client.on("message", async (message) => {
 	);
 
 	commandHandler.emit(command, client, guildData, message, args);
-
-	if (command === "help") {
-		message.delete();
-		(await message.author.createDM()).send(`
-		**Command list**
-		\`>ping\`
-			This command pings the bot and returns the latency
-		\`>purge <Number of messages>\`
-			This command mass deletes a certain number of messages (2 - 100)
-			This command requires moderator permissions
-		\`>addmod <@user>\`
-			This command requires moderator permissions
-			This command give a user bot moderator permissions
-		\`>remmod <@user>\`
-			This command requires moderator permissions
-			This command removes a user's bot moderator permissions
-		\`>blame\`
-			This command blames a random user in the guild
-		`);
-	}
 });
 
 client.login(process.env.BOT_TOKEN);

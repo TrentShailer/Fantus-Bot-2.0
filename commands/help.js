@@ -7,11 +7,9 @@ const description = `This command displays all the bot's features`;
 const modOnly = false;
 const minArgs = 0;
 
-var helpMsg = `**Command list**`;
-
 async function action(client, guildData, message, args) {
 	message.delete();
-	(await message.author.createDM()).send(helpMsg);
+	(await message.author.createDM()).send(util.helpMsg);
 }
 
 var command = new commandTemplate(keyword, template, description, modOnly, minArgs, action);
