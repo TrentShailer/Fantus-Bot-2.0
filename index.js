@@ -101,27 +101,6 @@ client.on("message", async (message) => {
 			This command blames a random user in the guild
 		`);
 	}
-
-	if (command === "remmod") {
-		if (IsMod(message.author.id, guildData)) {
-			message.delete();
-			var toRem = message.mentions.users.first();
-
-			if (!toRem) {
-				return TmpReply(message, "You must provide a moderator remove");
-			}
-			var id = toRem.id;
-			if (id == message.guild.ownerID) {
-				return TmpReply(message, "You can not remove this user's moderator permissions");
-			} else if (IsMod(id, guildData)) {
-				var index = data.guilds[guildIndex].mods.indexOf(id);
-				data.guilds[guildIndex].mods.splice(index, 1);
-				WriteToJson(data);
-			} else {
-				return TmpReply(message, "This user is not a moderator");
-			}
-		}
-	}
 	if (command === "blame") {
 		message.delete();
 		var guild = message.guild;
