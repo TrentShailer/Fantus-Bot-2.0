@@ -101,18 +101,6 @@ client.on("message", async (message) => {
 			This command blames a random user in the guild
 		`);
 	}
-	if (command === "blame") {
-		message.delete();
-		var guild = message.guild;
-		var users = await guild.members.fetch();
-		var entry = users.random();
-		t = 0;
-		while (entry.user.bot && t < 10) {
-			t++;
-			entry = users.random();
-		}
-		message.channel.send(`It's <@${entry.user.id}>'s fault!`);
-	}
 });
 
 client.login(process.env.BOT_TOKEN);
