@@ -1,3 +1,4 @@
+// Class template for a command
 class Command {
 	constructor(keyword, template, description, modOnly, minArgs, action) {
 		this.keyword = keyword;
