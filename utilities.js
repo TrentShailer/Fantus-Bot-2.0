@@ -1,6 +1,8 @@
-async function WriteToJson(data) {
-	const jsonToWrite = JSON.stringify(data);
-	fs.writeFile("./store.json", jsonToWrite, "utf8", (err) => {});
+const fs = require("fs");
+
+async function WriteToJson(message, guildData) {
+	const jsonToWrite = JSON.stringify(guildData);
+	fs.writeFile(`./guilds/${message.guild.id}.json`, jsonToWrite, "utf8", (err) => {});
 }
 
 function IsMod(id, guildData) {
@@ -9,12 +11,28 @@ function IsMod(id, guildData) {
 }
 
 async function TmpReply(origMsg, newMsg, timeout = 4000) {
-	return origMsg
+	origMsg
 		.reply(newMsg)
 		.then((msg) => {
-			msg.delete({ timeout: timeout });
+			msg.delete({ timeout: timeout }).catch((err) => {
+				console.warn("Attempted to interact with a message that no longer exists");
+			});
 		})
-		.catch(console.error);
+		.catch((err) => {
+			console.warn("Attempted to interact with a message that no longer exists");
+		});
+	return;
 }
 
-module.exports = { WriteToJson, IsMod, TmpReply };
+function FetchGuildData(message) {
+	if (!fs.existsSync(`./guilds/${message.guild.id}.json`)) {
+		var json = `{"mods": ["${message.guild.ownerID}"]}`;
+		fs.writeFileSync(`./guilds/${message.guild.id}.json`, json, "utf8");
+		return JSON.parse(json);
+	}
+
+	var json = fs.readFileSync(`./guilds/${message.guild.id}.json`, "utf8");
+	return JSON.parse(json);
+}
+
+module.exports = { WriteToJson, IsMod, TmpReply, FetchGuildData };

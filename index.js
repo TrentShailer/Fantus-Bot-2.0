@@ -15,14 +15,18 @@ fs.readdir("./commands", (err, files) => {
 		commandHandler.on(command.keyword, (client, guildData, message, args) => {
 			if (command.modOnly && !utilities.IsMod(message.author.id, guildData)) {
 				message.delete();
-				return utilities.TmpReply(message, "This command requires moderator permissions", 10);
+				return utilities.TmpReply(
+					message,
+					"This command requires moderator permissions",
+					10000
+				);
 			}
 			if (args.length < command.minArgs) {
 				message.delete();
 				return utilities.TmpReply(
 					message,
 					`This command requires at least ${command.minArgs} argument(s), provided ${args.length}`,
-					10
+					10000
 				);
 			}
 
@@ -58,23 +62,11 @@ client.on("message", async (message) => {
 	if (message.author.bot) return;
 	if (!message.content.startsWith(prefix)) return;
 
-	var json = fs.readFileSync("./store.json", "utf8");
-	var data = JSON.parse(json);
-
-	var guildData = data.guilds.find((obj) => {
-		return obj.guild === message.guild.id;
-	});
-
-	if (guildData == undefined) {
-		guildData = { guild: message.guild.id, mods: [] };
-		data.guilds.push(guildData);
-		utilities.WriteToJson(data);
-	}
-	var guildIndex = data.guilds.indexOf(guildData);
+	var guildData = utilities.FetchGuildData(message);
 
 	if (!utilities.IsMod(message.guild.ownerID, guildData)) {
-		data.guilds[guildIndex].mods.push(message.guild.ownerID);
-		utilities.WriteToJson(data);
+		guildData.mods.push(message.guild.ownerID);
+		utilities.WriteToJson(message, guildData);
 	}
 
 	var now = new Date();
@@ -110,22 +102,6 @@ client.on("message", async (message) => {
 		`);
 	}
 
-	if (command === "addmod") {
-		if (IsMod(message.author.id, guildData)) {
-			message.delete();
-			var toAdd = message.mentions.users.first();
-
-			if (!toAdd) {
-				return TmpReply(message, "You must provide a user to mod");
-			}
-			var id = toAdd.id;
-			if (IsMod(id, guildData)) {
-				return TmpReply(message, "This user is already a moderator");
-			}
-			data.guilds[guildIndex].mods.push(id);
-			WriteToJson(data);
-		}
-	}
 	if (command === "remmod") {
 		if (IsMod(message.author.id, guildData)) {
 			message.delete();

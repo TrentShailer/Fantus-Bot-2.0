@@ -13,7 +13,10 @@ async function action(client, guildData, message, args) {
 		`Pong! Latency is ${
 			m.createdTimestamp - message.createdTimestamp
 		}ms. API Latency is ${Math.round(client.ws.ping)}ms`
-	);
+	).catch((err) => {
+		console.warn("Attempted to interact with a message that no longer exists");
+	});
+	return;
 }
 
 var command = new commandTemplate(keyword, template, description, modOnly, minArgs, action);
